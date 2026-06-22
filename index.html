@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise AI Banking Document Analyzer</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-chat-user: #3b82f6;
+            --bg-chat-bot: #334155;
+            --text-main: #f8fafc;
+        }
+        body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="h-screen w-full overflow-hidden flex">
+
+    <div class="flex w-full h-full">
+        <!-- Control Deck -->
+        <section class="w-52 bg-slate-800 border-r border-slate-700 flex flex-col h-full">
+            <div class="p-4 border-b border-slate-700 font-bold uppercase tracking-wider flex items-center gap-2 text-xs">
+                <i class="fa-solid fa-building-columns text-blue-500"></i> Banking Control
+            </div>
+            <div class="p-4 flex flex-col gap-3">
+                <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition text-sm" id="connectBtn" onclick="initializeSystem()">
+                    <i class="fa-solid fa-power-off mr-2"></i> Initialize
+                </button>
+                <div id="statusIndicator" class="px-3 py-2 rounded-lg text-xs font-medium bg-slate-700 text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-nodes"></i> Offline
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-700 mt-auto">
+                <div id="dropzoneArea" class="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-blue-500 transition" onclick="document.getElementById('fileInput').click()">
+                    <i class="fa-solid fa-file-invoice-dollar text-2xl text-slate-500 mb-2"></i>
+                    <p class="text-[10px] text-slate-400">Upload Doc</p>
+                </div>
+                <div id="fileBadge" class="hidden bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center justify-between">
+                    <span id="fileName" class="text-[11px] truncate mr-2 text-slate-200"></span>
+                    <button onclick="removeFile()" class="text-slate-400 hover:text-red-400"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx" class="hidden" onchange="handleFileSelect(event)">
+            </div>
+        </section>
+
+        <!-- Expanded AI Assistant -->
+        <section class="flex-1 flex flex-col h-full bg-slate-900">
+            <div class="p-5 border-b border-slate-700 flex items-center gap-3 font-semibold">
+                <i class="fa-solid fa-shield-halved text-blue-400"></i> AI Banking Assistant
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-4" id="chatMessages">
+                <div class="message bot bg-slate-800 p-4 rounded-xl max-w-[80%] self-start text-sm">System ready. Initialize to begin analyzing your banking documents.</div>
+            </div>
+            <div class="p-6 border-t border-slate-700 flex gap-3">
+                <input type="text" id="chatInput" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ask questions about the document..." disabled>
+                <button class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50" id="sendBtn" onclick="sendMessage()" disabled>
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let documentContext = "";
+        let systemReady = false;
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function initializeSystem() {
+            systemReady = true;
+            const status = document.getElementById('statusIndicator');
+            status.classList.remove('bg-slate-700', 'text-slate-300');
+            status.classList.add('bg-green-900', 'text-green-300');
+            status.innerHTML = '<i class="fa-solid fa-check"></i> Online';
+            document.getElementById('connectBtn').disabled = true;
+            document.getElementById('chatInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            appendMessage('bot', 'System ready. Upload a banking document (PDF/DOCX/XLSX) to start.');
+        }
+
+        function removeFile() {
+            documentContext = "";
+            document.getElementById('dropzoneArea').classList.remove('hidden');
+            document.getElementById('fileBadge').classList.add('hidden');
+            document.getElementById('fileInput').value = '';
+            appendMessage('bot', 'Document cleared. Upload a new banking record to continue.');
+        }
+
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('dropzoneArea').classList.add('hidden');
+            document.getElementById('fileBadge').classList.remove('hidden');
+            document.getElementById('fileName').textContent = file.name;
+
+            appendMessage('bot', `Analyzing **${file.name}**...`);
+            
+            try {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext === 'pdf') await parsePDF(file);
+                else if (ext === 'docx') await parseDOCX(file);
+                else if (ext === 'xlsx') await parseXLSX(file);
+                appendMessage('bot', `Document **${file.name}** processed successfully.`);
+            } catch (e) {
+                appendMessage('bot', `Error processing file: ${e.message}`);
+                removeFile();
+            }
+        }
+
+        async function parsePDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
+            let fullText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                fullText += content.items.map(it => it.str).join(' ') + "\n";
+            }
+            documentContext = fullText;
+        }
+
+        async function parseDOCX(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            documentContext = result.value;
+        }
+
+        async function parseXLSX(file) {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(new Uint8Array(data), {type: 'array'});
+            documentContext = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
+        }
+
+        function appendMessage(role, text) {
+            const chatMessages = document.getElementById('chatMessages');
+            const msg = document.createElement('div');
+            msg.className = `message ${role} p-4 rounded-xl max-w-[80%] ${role === 'user' ? 'bg-blue-600 self-end' : 'bg-slate-800 self-start'} text-sm`;
+            msg.innerHTML = marked.parse(text);
+            chatMessages.appendChild(msg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return msg;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            appendMessage('user', text);
+            input.value = '';
+            
+            const prompt = documentContext 
+                ? `Banking Context:\n${documentContext.substring(0, 8000)}\n\nQuestion: ${text}`
+                : text;
+
+            const botMsgDiv = appendMessage('bot', '<span class="animate-pulse">Thinking...</span>');
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+                const fullResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "No analysis generated.";
+                
+                botMsgDiv.innerHTML = "";
+                await typeWriterEffect(botMsgDiv, fullResponse);
+                
+            } catch (e) {
+                botMsgDiv.innerHTML = "Analysis error occurred. Please verify API configuration.";
+            }
+        }
+
+        async function typeWriterEffect(element, text) {
+            const chunks = text.split(' ');
+            let currentText = "";
+            for (let i = 0; i < chunks.length; i++) {
+                currentText += chunks[i] + " ";
+                element.innerHTML = marked.parse(currentText);
+                document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                await new Promise(resolve => setTimeout(resolve, 30));
+            }
+        }
+    </script>
+</body>
+</html>
