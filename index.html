@@ -42,17 +42,6 @@
         @keyframes scan { 0% { top: -10%; } 100% { top: 110%; } }
         .cosmic-glow { text-shadow: 0 0 10px rgba(96, 165, 250, 0.8); }
         
-        .rgb-text { 
-            animation: rgb-cycle 3s infinite linear;
-            font-weight: 800;
-            letter-spacing: 0.05em;
-        }
-        @keyframes rgb-cycle { 
-            0%, 100% { color: #ff0000; text-shadow: 0 0 8px #ff0000; }
-            33% { color: #00ff00; text-shadow: 0 0 8px #00ff00; }
-            66% { color: #0000ff; text-shadow: 0 0 8px #0000ff; }
-        }
-
         .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; }
         .markdown-body p { margin-bottom: 1rem; }
         .markdown-body strong { font-weight: 600; color: #fff; }
@@ -67,11 +56,20 @@
     <div class="app-bg-wrapper pointer-events-none"></div>
 
     <header class="w-full flex flex-col z-20 shrink-0 border-b border-slate-800 shadow-sm bg-slate-900/90 backdrop-blur-sm">
-        <div class="p-4 flex flex-col items-center justify-center">
-            <h1 class="text-xl font-bold text-blue-400 tracking-widest uppercase flex items-center gap-3 cosmic-glow">
-                <i class="fa-solid fa-brain text-blue-500"></i> ASKMYBANKDOCS AI
-            </h1>
-            <div class="text-xs font-bold italic tracking-[0.2em] rgb-text mt-1">Banking Starts With Documents</div>
+        <div class="p-4 flex items-center justify-between px-8">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-building-columns text-blue-400 text-sm"></i>
+                <h2 class="text-blue-100 font-bold text-lg tracking-[0.15em] cosmic-glow">APEX BANK</h2>
+            </div>
+            
+            <div class="flex flex-col items-center">
+                <h1 class="text-xl font-bold text-blue-400 tracking-widest uppercase flex items-center gap-3 cosmic-glow">
+                    <i class="fa-solid fa-brain text-blue-500"></i> BANK DOCS LLM
+                </h1>
+                <div class="text-xs font-bold italic tracking-[0.2em] text-green-500 mt-1">Banking Starts With Documents</div>
+            </div>
+            
+            <div class="w-[100px]"></div>
         </div>
         
         <div class="bg-slate-950/80 backdrop-blur border-t border-slate-800 p-2.5 flex items-center justify-center gap-6 text-xs">
@@ -81,7 +79,7 @@
             </div>
             
             <div class="flex items-center gap-2">
-                <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white outline-none focus:border-blue-500 w-56 transition-colors">
+                <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white outline-none focus:border-blue-500 w-40 transition-colors">
                 <button class="bg-slate-800 text-white px-4 py-1.5 rounded-md font-medium hover:bg-slate-700 border border-slate-700 transition" onclick="setApiKey()">Save Key</button>
             </div>
             
@@ -96,6 +94,11 @@
             </div>
             
             <div class="h-5 w-px bg-slate-800"></div>
+
+            <button onclick="document.getElementById('fileInput').click()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 px-4 py-1.5 rounded-md transition flex items-center gap-2">
+                <i class="fa-solid fa-file-arrow-up"></i> Upload Doc
+            </button>
+            <input type="file" id="fileInput" class="hidden" accept="application/pdf" onchange="handleFileSelect(event)">
             
             <button class="text-red-400 hover:text-red-300 transition font-medium px-3 py-1.5 rounded-md hover:bg-red-950/30 flex items-center gap-2" onclick="signOut()">
                 <i class="fa-solid fa-power-off"></i> Sign Out
@@ -106,32 +109,7 @@
     <div class="flex flex-1 w-full overflow-hidden">
         
         <section class="w-[260px] min-w-[260px] bg-[#1e1f22]/90 border-r border-slate-800 flex flex-col h-full z-10 shrink-0">
-            
-            <div class="h-28 bg-slate-950 overflow-hidden flex flex-col items-center justify-center border-b border-slate-800 relative shrink-0 shadow-inner">
-                <div class="absolute inset-0 bg-[linear-gradient(rgba(30,58,138,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(30,58,138,0.15)_1px,transparent_1px)] bg-[size:16px_16px] opacity-80"></div>
-                <div class="absolute inset-0 bg-gradient-to-b from-blue-900/10 via-transparent to-slate-950/80"></div>
-                <div class="scan-line"></div>
-                <div id="particles"></div>
-                
-                <div class="z-10 flex flex-col items-center mt-2 px-2">
-                    <div class="flex items-center gap-2 mb-1">
-                        <i class="fa-solid fa-building-columns text-blue-400 text-sm"></i>
-                        <h2 class="text-blue-100 font-bold text-lg tracking-[0.15em] cosmic-glow">APEX BANK</h2>
-                    </div>
-                    <p class="text-blue-400/80 text-[8px] uppercase tracking-[0.2em] font-medium border-t border-blue-500/30 pt-1">Core Banking Solution</p>
-                </div>
-            </div>
-
             <div class="flex-1 overflow-y-auto p-2" id="pageViewer"></div>
-
-            <div class="p-4 border-t border-slate-800 bg-slate-900/90 shrink-0">
-                <div id="dropzoneArea" class="border-2 border-dashed border-slate-700 rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 hover:bg-slate-800/50 transition-all group" onclick="document.getElementById('fileInput').click()">
-                    <i class="fa-solid fa-file-arrow-up text-xl text-slate-500 mb-2 group-hover:text-blue-400 transition-colors"></i>
-                    <p class="text-slate-300 text-xs font-medium">Upload Banking Document</p>
-                    <p class="text-[9px] text-slate-500 mt-1">PDF format supported</p>
-                </div>
-                <input type="file" id="fileInput" class="hidden" accept="application/pdf" onchange="handleFileSelect(event)">
-            </div>
         </section>
 
         <section class="flex-1 flex flex-col h-full bg-[#111827]/80 relative">
@@ -141,7 +119,7 @@
                         <i class="fa-solid fa-robot text-2xl text-white"></i>
                     </div>
                     <h2 class="text-2xl font-semibold text-slate-200 mb-3">How can I help you today?</h2>
-                    <p class="text-slate-400 text-sm max-w-md leading-relaxed">Securely upload a document on the left and ask your financial queries below.</p>
+                    <p class="text-slate-400 text-sm max-w-md leading-relaxed">Securely upload a document above and ask your financial queries below.</p>
                 </div>
             </div>
 
@@ -195,16 +173,6 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         let documentContext = "", apiKey = "", currentController = null, stopTyping = false, isSystemReady = false;
-
-        const pContainer = document.getElementById('particles');
-        for(let i=0; i<30; i++) {
-            const p = document.createElement('div');
-            p.className = 'flow-particle';
-            p.style.left = Math.random() * 100 + '%';
-            p.style.top = Math.random() * 100 + '%';
-            p.style.animationDelay = Math.random() * 10 + 's';
-            pContainer.appendChild(p);
-        }
 
         function setApiKey() { apiKey = document.getElementById('apiKeyInput').value.trim(); if(apiKey) document.getElementById('connectBtn').disabled = false; }
         
