@@ -182,7 +182,7 @@
             if (!file) return;
             
             const viewer = document.getElementById('pageViewer');
-            viewer.innerHTML = '<div class="text-center py-10 text-slate-500 text-xs animate-pulse"><i class="fa-solid fa-circle-notch fa-spin text-2xl"></i><br>Processing Pages...</div>';
+            viewer.innerHTML = '<div class="text-center py-10 text-slate-500 text-xs animate-pulse"><i class="fa-solid fa-circle-notch fa-spin text-2xl"></i><br>Processing High-Res Pages...</div>';
             
             try {
                 const arrayBuffer = await file.arrayBuffer();
@@ -195,13 +195,21 @@
                     const content = await page.getTextContent();
                     documentContext += content.items.map(it => it.str).join(' ') + "\n";
 
-                    const viewport = page.getViewport({ scale: 0.6 });
+                    // Improved high-resolution rendering
+                    const viewport = page.getViewport({ scale: 2.0 }); // Higher scale factor
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-                    canvas.className = "w-full h-auto mb-4 border border-slate-800 rounded shadow-sm";
+                    
+                    const ratio = window.devicePixelRatio || 1;
+                    canvas.width = viewport.width * ratio;
+                    canvas.height = viewport.height * ratio;
+                    canvas.style.width = '100%'; // CSS handles responsive width
+                    canvas.style.height = 'auto';
+                    
+                    context.scale(ratio, ratio);
+                    canvas.className = "mb-4 border border-slate-800 rounded shadow-sm";
                     viewer.appendChild(canvas);
+                    
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
                 }
                 
