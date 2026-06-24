@@ -21,32 +21,12 @@
             background-size: cover; background-position: center; background-repeat: no-repeat;
         }
 
-        .cosmic-bg { 
-            background: radial-gradient(circle at 50% 50%, #1e3a8a 0%, #0f172a 50%, #020617 100%); 
-            position: relative; overflow: hidden; box-shadow: inset 0 0 50px rgba(59, 130, 246, 0.2);
-        }
-        .flow-particle { 
-            position: absolute; width: 3px; height: 3px; background: rgba(255, 255, 255, 0.6); 
-            border-radius: 50%; filter: blur(1px); animation: drift 15s infinite linear; 
-        }
-        @keyframes drift { 
-            0% { transform: translateY(0) translateX(0); opacity: 0; } 
-            50% { opacity: 1; }
-            100% { transform: translateY(-200px) translateX(20px); opacity: 0; } 
-        }
-        .scan-line {
-            position: absolute; width: 100%; height: 2px;
-            background: linear-gradient(to right, transparent, rgba(59, 130, 246, 0.8), transparent);
-            box-shadow: 0 0 8px rgba(96, 165, 250, 0.8); animation: scan 4s linear infinite; opacity: 0.5; z-index: 1;
-        }
-        @keyframes scan { 0% { top: -10%; } 100% { top: 110%; } }
         .cosmic-glow { text-shadow: 0 0 10px rgba(96, 165, 250, 0.8); }
         
         .markdown-body { font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; }
         .markdown-body p { margin-bottom: 1rem; }
         .markdown-body strong { font-weight: 600; color: #fff; }
         .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
-        .markdown-body ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
         .markdown-body h1, .markdown-body h2 { font-weight: 700; color: #fff; margin: 1.5rem 0 0.75rem 0; }
         .markdown-body code { background: #1e293b; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: monospace; color: #93c5fd; }
     </style>
@@ -59,7 +39,10 @@
         <div class="p-4 flex items-center justify-between px-8">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-building-columns text-blue-400 text-sm"></i>
-                <h2 class="text-blue-100 font-bold text-lg tracking-[0.15em] cosmic-glow">APEX BANK</h2>
+                <div>
+                    <h2 class="text-blue-100 font-bold text-lg tracking-[0.15em] cosmic-glow">APEX BANK</h2>
+                    <div class="text-[9px] text-blue-500 font-bold uppercase tracking-widest mt-0.5">Core Banking Solution</div>
+                </div>
             </div>
             
             <div class="flex flex-col items-center">
@@ -104,12 +87,21 @@
                 <i class="fa-solid fa-power-off"></i> Sign Out
             </button>
         </div>
+
+        <div class="bg-slate-900/90 border-t border-slate-800 px-8 py-2 flex items-center gap-4 z-10">
+            <div class="text-blue-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                <i class="fa-solid fa-eye"></i> Page Preview
+            </div>
+            <div class="h-4 w-px bg-slate-700"></div>
+        </div>
     </header>
 
     <div class="flex flex-1 w-full overflow-hidden">
         
-        <section class="w-[260px] min-w-[260px] bg-[#1e1f22]/90 border-r border-slate-800 flex flex-col h-full z-10 shrink-0">
-            <div class="flex-1 overflow-y-auto p-2" id="pageViewer"></div>
+        <section class="w-[30%] min-w-[260px] bg-[#1e1f22]/90 border-r border-slate-800 flex flex-col h-full z-10 shrink-0">
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center" id="pageViewer">
+                <div class="text-slate-500 text-xs italic">Uploaded document preview here...</div>
+            </div>
         </section>
 
         <section class="flex-1 flex flex-col h-full bg-[#111827]/80 relative">
@@ -135,7 +127,7 @@
             <div class="text-center text-[10px] text-slate-500 pb-3 font-medium">AI responses are strictly based on provided context.</div>
         </section>
 
-        <section class="w-[260px] min-w-[260px] bg-slate-900/90 h-full flex flex-col border-l border-slate-800 z-10 shrink-0">
+        <section class="w-[20%] min-w-[200px] bg-slate-900/90 h-full flex flex-col border-l border-slate-800 z-10 shrink-0">
             <div class="p-4 border-b border-slate-800 flex items-center gap-2 shrink-0 bg-slate-950/50">
                 <i class="fa-solid fa-chart-line text-blue-500"></i>
                 <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Document Analytics</span>
@@ -192,7 +184,6 @@
             const viewer = document.getElementById('pageViewer');
             viewer.innerHTML = '<div class="text-center py-10 text-slate-500 text-xs animate-pulse"><i class="fa-solid fa-circle-notch fa-spin text-2xl"></i><br>Processing Pages...</div>';
             
-            addSystemMessage(`Extracting text from **${file.name}**...`);
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
@@ -215,8 +206,7 @@
                 }
                 
                 document.getElementById('documentTitle').textContent = file.name.substring(0,20).toUpperCase();
-                addSystemMessage(`**Document Loaded:** ${pdf.numPages} pages rendered for verification.`);
-            } catch (err) { addSystemMessage(`**Error:** ${err.message}`); }
+            } catch (err) { viewer.innerHTML = `<div class="text-red-400 text-xs">Error: ${err.message}</div>`; }
         }
 
         function handleKeyPress(event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); } }
@@ -244,8 +234,6 @@
             document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
             return inner.querySelector('.markdown-body') || inner.querySelector('.text-slate-200');
         }
-
-        function addSystemMessage(text) { appendMessageRow('bot').innerHTML = marked.parse(text); }
 
         async function sendMessage() {
             const input = document.getElementById('chatInput'), text = input.value.trim();
